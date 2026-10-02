@@ -107,6 +107,10 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _padded(value: str) -> bool:
+    return value != value.strip()
+
+
 def automation_errors(payload: dict[str, Any]) -> list[str]:
     """Return consistency errors for an automations snapshot."""
     errors: list[str] = []
@@ -139,7 +143,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             errors.append(f"automations[{index}].taskId must be a non-empty string")
         else:
             normalized_id = task_id.strip()
-            if task_id != normalized_id:
+            if _padded(task_id):
                 errors.append(
                     f"automations[{index}].taskId must not have surrounding whitespace"
                 )
@@ -150,11 +154,21 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         name = item["name"]
         if not isinstance(name, str) or not name.strip():
             errors.append(f"automations[{index}].name must be a non-empty string")
+        elif _padded(name):
+            errors.append(
+                f"automations[{index}].name must not have surrounding whitespace"
+            )
         if not isinstance(item["isActive"], bool):
             errors.append(f"automations[{index}].isActive must be a bool")
         summary = item["prompt_summary"]
         if not isinstance(summary, str) or not summary.strip():
-            errors.append(f"automations[{index}].prompt_summary must be a non-empty string")
+            errors.append(
+                f"automations[{index}].prompt_summary must be a non-empty string"
+            )
+        elif _padded(summary):
+            errors.append(
+                f"automations[{index}].prompt_summary must not have surrounding whitespace"
+            )
         trigger = item["trigger"]
         if not isinstance(trigger, dict):
             errors.append(f"automations[{index}].trigger must be an object")
