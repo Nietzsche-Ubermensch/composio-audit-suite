@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-10-02T15:59:00+00:00",
+  "source": "composio___COMPOSIO_MANAGE_CONNECTIONS action=list (live)",
+  "summary": {
+    "total_toolkits": 15,
+    "active_connections": 15,
+    "initiated_connections": 0,
+    "failed_connections": 0
+  },
+  "toolkits": {
+    "gmail": {"status": "active", "account_id": "gmail_teer-doney", "email": "peterbilt5018@gmail.com", "name": "Matthew"},
+    "googlecalendar": {"status": "active", "account_id": "googlecalendar_talon-hole", "alias": "googlecalendar", "email": "peterbilt5018@gmail.com"},
+    "googledocs": {"status": "active", "account_id": "googledocs_nep-audio", "alias": "googledocs", "email": "peterbilt5018@gmail.com"},
+    "googlesheets": {"status": "active", "account_id": "googlesheets_gimp-gobo", "alias": "googlesheets", "email": "peterbilt5018@gmail.com"},
+    "googledrive": {"status": "active", "account_id": "googledrive_mirror-boho", "email": "peterbilt5018@gmail.com", "display_name": "Matthew"},
+    "googlemeet": {"status": "active", "account_id": "googlemeet_ovey-poser"},
+    "googleslides": {"status": "active", "account_id": "googleslides_hak-volta", "alias": "googleslides", "email": "peterbilt5018@gmail.com"},
+    "outlook": {"status": "active", "account_id": "outlook_reside-vanist", "display_name": "Matt Batey", "email": "peterbilt5018@gmail.com"},
+    "excel": {"status": "active", "account_id": "excel_anous-angary", "display_name": "Matt Batey", "email": "peterbilt5018@gmail.com"},
+    "one_drive": {"status": "active", "account_id": "one_drive_dung-relime", "display_name": "Matt Batey", "email": "peterbilt5018@gmail.com", "storage_used_bytes": 36185099469, "storage_total_bytes": 230854492160, "storage_state": "normal"},
+    "netlify_mcp": {"status": "active", "account_id": "netlify_mcp_ked-vouch"},
+    "cloudflare": {"status": "active", "account_id": "cloudflare_duppy-rebud"},
+    "vercel": {"status": "active", "account_id": "vercel_gruss-vespal", "email": "alexablissislove@gmail.com", "username": "alexablissislove-9788"},
+    "github": {"status": "active", "account_id": "github_ronde-grin", "alias": "github", "login": "Nietzsche-Ubermensch", "user_id": 221520027},
+    "figma": {"status": "active", "account_id": "figma_ferial-shear", "alias": "figma", "handle": "Matthew", "email": "peterbilt5018@gmail.com"}
+  },
+  "notes": [
+    "Vercel is connected to alexablissislove@gmail.com - different Google identity than the rest (peterbilt5018@gmail.com). Verify this is intentional.",
+    "OneDrive storage: ~34 GB used of ~215 GB, state normal, upgrade available.",
+    "All 15 toolkits: 15 active, 0 initiated, 0 failed."
+  ]
+}
