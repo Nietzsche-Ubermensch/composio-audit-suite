@@ -219,6 +219,7 @@ def test_automation_errors_reject_padded_duplicate_task_id():
         }
     )
     assert any("duplicate taskId t" in error for error in errors)
+    assert any("must not have surrounding whitespace" in error for error in errors)
 
 
 def test_automation_errors_reject_malformed_repo_token():
@@ -246,3 +247,38 @@ def test_automation_errors_accept_numeric_repo_id_and_owner_name():
         }
     )
     assert errors == []
+
+
+def test_automation_errors_reject_non_decimal_digit_repo_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [_automation("t", repo="\u00b2")],
+        }
+    )
+    assert any("trigger has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_dot_repo_segments_and_duplicate_tokens():
+    dot_errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [_automation("t", repo="owner/..")],
+        }
+    )
+    assert any("trigger has no dimensions.repo" in error for error in dot_errors)
+    payload = _automation("t", repo="1402031134")
+    payload["trigger"]["dimensions"]["repo"] = ["1402031134", " 1402031134 "]
+    dup_errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [payload],
+        }
+    )
+    assert any("trigger has no dimensions.repo" in error for error in dup_errors)
