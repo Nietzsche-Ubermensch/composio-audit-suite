@@ -309,3 +309,80 @@ def test_automation_errors_missing_catalog_token_is_not_a_junk_error():
     )
     assert "catalog_providers_available must include github" in errors
     assert "github_trigger_types must include push_to_branch" in errors
+
+def test_automation_errors_reject_blank_repo_entries_without_missing_message():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134", " "]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo must contain only non-empty strings" in error for error in errors)
+    assert not any("has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_duplicate_repo_entries():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134", " 1402031134 "]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo contains duplicate entries" in error for error in errors)
+    assert not any("has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_check_membership_when_catalog_has_duplicates():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github", " github "],
+            "github_trigger_types": ["push_to_branch", " push_to_branch "],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "slack",
+                        "trigger_type": "pull_request",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert "catalog_providers_available contains duplicate entries" in errors
+    assert "github_trigger_types contains duplicate entries" in errors
+    assert any("provider slack is not in catalog_providers_available" in error for error in errors)
+    assert any("trigger_type pull_request is not in github_trigger_types" in error for error in errors)
+
