@@ -244,3 +244,53 @@ def test_automation_errors_treat_padded_task_ids_as_duplicates():
         }
     )
     assert errors == ["duplicate taskId t"]
+
+def test_automation_errors_reject_owner_repo_slug():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("numeric GitHub repo ids" in error for error in errors)
+    assert not any("trigger has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_provider_outside_catalog():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "slack",
+                        "trigger_type": "issue_opened",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("provider slack is not in catalog_providers_available" in error for error in errors)
+    assert any("trigger_type issue_opened is not in github_trigger_types" in error for error in errors)
+

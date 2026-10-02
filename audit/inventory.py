@@ -46,14 +46,23 @@ def _string_list(value: Any) -> list[str] | None:
     return names
 
 
-def _repo_names(dimensions: Any) -> list[str] | None:
-    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
-    if not isinstance(dimensions, dict):
-        return None
+def _repo_names(dimensions: Any) -> tuple[list[str] | None, str | None]:
+    """Return numeric GitHub repo ids, or None plus a dimensions.repo error.
+
+    Automations requires the numeric id from automation_list_trigger_resources,
+    not an owner/name slug. Padding is stripped before the digit and uniqueness
+    checks so " 1402031134 " and "1402031134" are the same id.
+    """
+    if not isinstance(dimensions, dict) or "repo" not in dimensions:
+        return None, "trigger has no dimensions.repo"
     names = _string_list(dimensions.get("repo"))
-    if names is None or len(names) != len(set(names)):
-        return None
-    return names
+    if names is None:
+        return None, "dimensions.repo entries must be non-empty strings"
+    if len(names) != len(set(names)):
+        return None, "dimensions.repo contains duplicate repo ids"
+    if any(not name.isdigit() for name in names):
+        return None, "dimensions.repo entries must be numeric GitHub repo ids"
+    return names, None
 
 
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
@@ -174,6 +183,17 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             errors.append(
                 f"automations[{index}].trigger.trigger_type must be a non-empty string"
             )
-        if _repo_names(trigger.get("dimensions")) is None:
-            errors.append(f"automations[{index}] trigger has no dimensions.repo")
+        _repos, repo_error = _repo_names(trigger.get("dimensions"))
+        if repo_error is not None:
+            errors.append(f"automations[{index}] {repo_error}")
+        provider_name = provider.strip() if isinstance(provider, str) else ""
+        type_name = trigger_type.strip() if isinstance(trigger_type, str) else ""
+        if provider_name and providers is not None and provider_name not in providers:
+            errors.append(
+                f"automations[{index}].trigger.provider {provider_name} is not in catalog_providers_available"
+            )
+        if type_name and trigger_types is not None and type_name not in trigger_types:
+            errors.append(
+                f"automations[{index}].trigger.trigger_type {type_name} is not in github_trigger_types"
+            )
     return errors
