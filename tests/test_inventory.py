@@ -181,3 +181,67 @@ def test_automation_errors_reject_blank_repo_name():
         }
     )
     assert any("dimensions.repo" in error for error in errors)
+
+
+def test_inventory_errors_reject_whitespace_duplicate_screen_entry():
+    errors = inventory_errors(
+        {
+            "meta_tools_total": 1,
+            "schemas_retrieved": 1,
+            "unique_slugs": 1,
+            "screen_rows": 2,
+            "duplicate_screen_entry": "   ",
+            "tools": {"COMPOSIO_SEARCH_TOOLS": {"status": "live"}},
+        }
+    )
+    assert any("duplicate_screen_entry must be a non-empty slug" in error for error in errors)
+
+
+def test_automation_errors_reject_non_string_repo_entry():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": [None]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_blank_name_and_non_bool_active():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "  ",
+                    "isActive": 1,
+                    "prompt_summary": "",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("name must be a non-empty string" in error for error in errors)
+    assert any("prompt_summary must be a non-empty string" in error for error in errors)
+    assert any("isActive must be a bool" in error for error in errors)
