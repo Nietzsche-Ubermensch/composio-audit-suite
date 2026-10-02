@@ -48,3 +48,52 @@ def test_automation_errors_flag_count_mismatch():
         }
     )
     assert any("count" in error for error in errors)
+
+
+def test_inventory_errors_require_unique_slugs():
+    errors = inventory_errors(
+        {
+            "meta_tools_total": 1,
+            "schemas_retrieved": 1,
+            "tools": {"COMPOSIO_SEARCH_TOOLS": {"status": "live"}},
+        }
+    )
+    assert any("unique_slugs is required" in error for error in errors)
+
+
+def test_inventory_errors_reject_duplicate_that_does_not_add_a_row():
+    errors = inventory_errors(
+        {
+            "meta_tools_total": 1,
+            "schemas_retrieved": 1,
+            "unique_slugs": 1,
+            "screen_rows": 1,
+            "duplicate_screen_entry": "COMPOSIO_SEARCH_TOOLS",
+            "tools": {"COMPOSIO_SEARCH_TOOLS": {"status": "live"}},
+        }
+    )
+    assert any("greater than the unique slug count" in error for error in errors)
+
+
+def test_automation_errors_reject_non_dict_dimensions():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": None,
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo" in error for error in errors)

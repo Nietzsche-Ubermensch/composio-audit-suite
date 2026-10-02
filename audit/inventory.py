@@ -29,6 +29,11 @@ def load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _count(value: Any) -> bool:
+    """True for real ints. bool is an int subclass and is not a count."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
     """Return consistency errors for a meta-tool inventory document."""
     errors: list[str] = []
@@ -40,26 +45,39 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
     if len(slugs) != len(set(slugs)):
         errors.append("tools contains duplicate slugs")
 
-    unique = payload.get("unique_slugs", len(slugs))
+    if "unique_slugs" not in payload:
+        errors.append("unique_slugs is required")
+        unique = None
+    else:
+        unique = payload.get("unique_slugs")
+        if not _count(unique):
+            errors.append("unique_slugs must be an int")
+        elif unique != len(slugs):
+            errors.append(f"unique_slugs {unique} != tools object size {len(slugs)}")
     retrieved = payload.get("schemas_retrieved")
     total = payload.get("meta_tools_total")
-    if unique != len(slugs):
-        errors.append(f"unique_slugs {unique} != tools object size {len(slugs)}")
-    if retrieved != len(slugs):
+    if not _count(retrieved) or retrieved != len(slugs):
         errors.append(
             f"schemas_retrieved {retrieved} != unique tools stored {len(slugs)}"
         )
-    if total != len(slugs):
+    if not _count(total) or total != len(slugs):
         errors.append(f"meta_tools_total {total} != unique tools stored {len(slugs)}")
 
     screen_rows = payload.get("screen_rows")
     duplicate = payload.get("duplicate_screen_entry")
-    if screen_rows is not None and duplicate:
-        if not isinstance(screen_rows, int) or screen_rows < len(slugs):
-            errors.append("screen_rows must be an int >= unique slug count")
-        if duplicate not in tools:
+    has_rows = screen_rows is not None
+    has_duplicate = duplicate is not None
+    if has_rows and has_duplicate:
+        if not _count(screen_rows) or screen_rows <= len(slugs):
+            errors.append(
+                "screen_rows must be an int greater than the unique slug count "
+                "when duplicate_screen_entry is set"
+            )
+        if not isinstance(duplicate, str) or not duplicate:
+            errors.append("duplicate_screen_entry must be a non-empty slug")
+        elif duplicate not in tools:
             errors.append(f"duplicate_screen_entry {duplicate} is not in tools")
-    elif screen_rows is not None or duplicate:
+    elif has_rows or has_duplicate:
         errors.append("screen_rows and duplicate_screen_entry must be set together")
 
     for slug, entry in tools.items():
@@ -109,7 +127,8 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
-        repos = trigger.get("dimensions", {}).get("repo")
+        dimensions = trigger.get("dimensions")
+        repos = dimensions.get("repo") if isinstance(dimensions, dict) else None
         if not isinstance(repos, list) or not repos:
             errors.append(f"automations[{index}] trigger has no dimensions.repo")
     return errors
