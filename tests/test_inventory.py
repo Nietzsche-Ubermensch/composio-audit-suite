@@ -295,4 +295,33 @@ def test_automation_errors_reject_padded_name_summary_and_repo():
         "automations[0].prompt_summary must not have surrounding whitespace" in error
         for error in errors
     )
-    assert any("dimensions.repo" in error for error in errors)
+    assert any(
+        "dimensions.repo entries must not have surrounding whitespace" in error
+        for error in errors
+    )
+    assert not any("trigger has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_keep_missing_repo_distinct_from_padding():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("trigger has no dimensions.repo" in error for error in errors)
+    assert not any("surrounding whitespace" in error for error in errors)
