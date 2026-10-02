@@ -255,7 +255,7 @@ def test_automation_errors_reject_non_decimal_digit_repo_id():
             "count": 1,
             "catalog_providers_available": ["github"],
             "github_trigger_types": ["push_to_branch"],
-            "automations": [_automation("t", repo="\u00b2")],
+            "automations": [_automation("t", repo=chr(178))],
         }
     )
     assert any("trigger has no dimensions.repo" in error for error in errors)
