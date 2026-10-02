@@ -34,11 +34,11 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _string_list(value: Any) -> list[str] | None:
+def _stripped_strings(value: Any) -> list[str] | None:
     """Return stripped non-empty strings, or None if any entry is unusable.
 
-    Duplicates after stripping are rejected. Callers that need a distinct
-    error should use _catalog_list_errors instead of treating None as missing.
+    Duplicates are preserved so callers can report them separately and still
+    check membership against the stripped values.
     """
     if not isinstance(value, list) or not value:
         return None
@@ -47,7 +47,17 @@ def _string_list(value: Any) -> list[str] | None:
         if not isinstance(item, str) or not item.strip():
             return None
         names.append(item.strip())
-    if len(names) != len(set(names)):
+    return names
+
+
+def _string_list(value: Any) -> list[str] | None:
+    """Return unique stripped non-empty strings, or None if unusable.
+
+    Callers that need a distinct error should use _catalog_list_errors
+    instead of treating None as missing.
+    """
+    names = _stripped_strings(value)
+    if names is None or len(names) != len(set(names)):
         return None
     return names
 
@@ -86,7 +96,9 @@ def _repo_error(index: int, dimensions: Any) -> str | None:
     names: list[str] = []
     for item in repos:
         if not isinstance(item, str) or not item.strip():
-            return f"automations[{index}] trigger has no dimensions.repo"
+            return (
+                f"automations[{index}] trigger dimensions.repo must contain only non-empty strings"
+            )
         names.append(item.strip())
     if len(names) != len(set(names)):
         return f"automations[{index}] trigger dimensions.repo contains duplicate entries"
@@ -162,7 +174,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         errors.append(
             f"count {count} != automations length {len(automations)}"
         )
-    providers = _string_list(payload.get("catalog_providers_available"))
+    providers = _stripped_strings(payload.get("catalog_providers_available"))
     errors.extend(
         _catalog_list_errors(
             "catalog_providers_available",
@@ -170,7 +182,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             "github",
         )
     )
-    trigger_types = _string_list(payload.get("github_trigger_types"))
+    trigger_types = _stripped_strings(payload.get("github_trigger_types"))
     errors.extend(
         _catalog_list_errors(
             "github_trigger_types",
