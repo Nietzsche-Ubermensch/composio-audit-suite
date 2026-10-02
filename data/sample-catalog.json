@@ -1,0 +1,157 @@
+{
+  "toolkits": [
+    {"slug": "github", "name": "GitHub", "description": "GitHub API integration"},
+    {"slug": "gmail", "name": "Gmail", "description": "Gmail integration"},
+    {"slug": "vercel", "name": "Vercel", "description": "Vercel deployment platform"},
+    {"slug": "figma", "name": "Figma", "description": "Figma design tool"}
+  ],
+  "tools": [
+    {
+      "slug": "github___get_file_contents",
+      "toolkit": "github",
+      "name": "Get File Contents",
+      "description": "Get the contents of a file or directory from a GitHub repository",
+      "input_schema": {
+        "type": "object",
+        "required": ["owner", "repo"],
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "path": {"type": "string"},
+          "ref": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["type", "name", "path", "sha"]
+      }
+    },
+    {
+      "slug": "github___create_or_update_file",
+      "toolkit": "github",
+      "name": "Create Or Update File",
+      "description": "Create or update a single file in a GitHub repository",
+      "input_schema": {
+        "type": "object",
+        "required": ["owner", "repo", "path", "content", "message", "branch"],
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "path": {"type": "string"},
+          "content": {"type": "string"},
+          "message": {"type": "string"},
+          "branch": {"type": "string"},
+          "sha": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["commit", "content"]
+      }
+    },
+    {
+      "slug": "github___create_pull_request",
+      "toolkit": "github",
+      "name": "Create Pull Request",
+      "description": "Create a new pull request in a GitHub repository",
+      "input_schema": {
+        "type": "object",
+        "required": ["owner", "repo", "title", "head", "base"],
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "title": {"type": "string"},
+          "head": {"type": "string"},
+          "base": {"type": "string"},
+          "body": {"type": "string"},
+          "draft": {"type": "boolean"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["number", "url", "state"]
+      }
+    },
+    {
+      "slug": "github___push_files",
+      "toolkit": "github",
+      "name": "Push Files",
+      "description": "Push multiple files to a GitHub repository in a single commit",
+      "input_schema": {
+        "type": "object",
+        "required": ["owner", "repo", "branch", "files", "message"],
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "branch": {"type": "string"},
+          "files": {"type": "array"},
+          "message": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["ref", "url"]
+      }
+    },
+    {
+      "slug": "gmail___send_email",
+      "toolkit": "gmail",
+      "name": "Send Email",
+      "description": "Send an email via Gmail",
+      "input_schema": {
+        "type": "object",
+        "required": ["to", "subject", "body"],
+        "properties": {
+          "to": {"type": "string"},
+          "subject": {"type": "string"},
+          "body": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["id", "threadId"]
+      }
+    },
+    {
+      "slug": "vercel___list_deployments",
+      "toolkit": "vercel",
+      "name": "List Deployments",
+      "description": "List Vercel deployments for a project or team",
+      "input_schema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "projectId": {"type": "string"},
+          "teamId": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["deployments"]
+      }
+    },
+    {
+      "slug": "figma___get_file",
+      "toolkit": "figma",
+      "name": "Get File",
+      "description": "Get a Figma file by key",
+      "input_schema": {
+        "type": "object",
+        "required": ["file_key"],
+        "properties": {
+          "file_key": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["name", "lastModified", "thumbnailUrl"]
+      }
+    }
+  ],
+  "connections": {
+    "github": {"active": true, "accounts": 1},
+    "gmail": {"active": true, "accounts": 1},
+    "vercel": {"active": true, "accounts": 1},
+    "figma": {"active": true, "accounts": 1}
+  }
+}
