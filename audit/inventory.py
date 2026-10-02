@@ -35,7 +35,11 @@ def _count(value: Any) -> bool:
 
 
 def _string_list(value: Any) -> list[str] | None:
-    """Return stripped non-empty strings, or None if any entry is unusable."""
+    """Return stripped non-empty strings, or None if any entry is unusable.
+
+    Duplicates after stripping are rejected. Callers that need a distinct
+    error should use _catalog_list_errors instead of treating None as missing.
+    """
     if not isinstance(value, list) or not value:
         return None
     names: list[str] = []
@@ -43,17 +47,50 @@ def _string_list(value: Any) -> list[str] | None:
         if not isinstance(item, str) or not item.strip():
             return None
         names.append(item.strip())
+    if len(names) != len(set(names)):
+        return None
     return names
+
+
+def _catalog_list_errors(field: str, value: Any, required: str) -> list[str]:
+    """Validate a catalog list without collapsing every failure into 'missing'."""
+    if not isinstance(value, list) or not value:
+        return [f"{field} must be a non-empty list of strings including {required}"]
+    names: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            return [f"{field} must contain only non-empty strings"]
+        names.append(item.strip())
+    errors: list[str] = []
+    if len(names) != len(set(names)):
+        errors.append(f"{field} contains duplicate entries")
+    if required not in names:
+        errors.append(f"{field} must include {required}")
+    return errors
 
 
 def _repo_names(dimensions: Any) -> list[str] | None:
-    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
+    """Return unique non-empty repo name strings, or None if unusable."""
     if not isinstance(dimensions, dict):
         return None
-    names = _string_list(dimensions.get("repo"))
-    if names is None or len(names) != len(set(names)):
-        return None
-    return names
+    return _string_list(dimensions.get("repo"))
+
+
+def _repo_error(index: int, dimensions: Any) -> str | None:
+    """Return a specific dimensions.repo error, or None when the list is usable."""
+    if not isinstance(dimensions, dict) or "repo" not in dimensions:
+        return f"automations[{index}] trigger has no dimensions.repo"
+    repos = dimensions.get("repo")
+    if not isinstance(repos, list) or not repos:
+        return f"automations[{index}] trigger has no dimensions.repo"
+    names: list[str] = []
+    for item in repos:
+        if not isinstance(item, str) or not item.strip():
+            return f"automations[{index}] trigger has no dimensions.repo"
+        names.append(item.strip())
+    if len(names) != len(set(names)):
+        return f"automations[{index}] trigger dimensions.repo contains duplicate entries"
+    return None
 
 
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
@@ -126,11 +163,21 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             f"count {count} != automations length {len(automations)}"
         )
     providers = _string_list(payload.get("catalog_providers_available"))
-    if providers is None or "github" not in providers:
-        errors.append("catalog_providers_available must include github")
+    errors.extend(
+        _catalog_list_errors(
+            "catalog_providers_available",
+            payload.get("catalog_providers_available"),
+            "github",
+        )
+    )
     trigger_types = _string_list(payload.get("github_trigger_types"))
-    if trigger_types is None or "push_to_branch" not in trigger_types:
-        errors.append("github_trigger_types must include push_to_branch")
+    errors.extend(
+        _catalog_list_errors(
+            "github_trigger_types",
+            payload.get("github_trigger_types"),
+            "push_to_branch",
+        )
+    )
 
     seen: set[str] = set()
     for index, item in enumerate(automations):
@@ -169,11 +216,20 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         provider = trigger.get("provider")
         if not isinstance(provider, str) or not provider.strip():
             errors.append(f"automations[{index}].trigger.provider must be a non-empty string")
+        elif providers is not None and provider.strip() not in providers:
+            errors.append(
+                f"automations[{index}].trigger.provider {provider.strip()} is not in catalog_providers_available"
+            )
         trigger_type = trigger.get("trigger_type")
         if not isinstance(trigger_type, str) or not trigger_type.strip():
             errors.append(
                 f"automations[{index}].trigger.trigger_type must be a non-empty string"
             )
-        if _repo_names(trigger.get("dimensions")) is None:
-            errors.append(f"automations[{index}] trigger has no dimensions.repo")
+        elif trigger_types is not None and trigger_type.strip() not in trigger_types:
+            errors.append(
+                f"automations[{index}].trigger.trigger_type {trigger_type.strip()} is not in github_trigger_types"
+            )
+        repo_error = _repo_error(index, trigger.get("dimensions"))
+        if repo_error:
+            errors.append(repo_error)
     return errors
