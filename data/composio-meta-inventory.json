@@ -1,8 +1,12 @@
 {
   "checked_at": "2026-10-02T16:30:00Z",
   "composio_version": "20260917_00",
-  "meta_tools_total": 19,
-  "schemas_retrieved": 19,
+  "meta_tools_total": 18,
+  "schemas_retrieved": 18,
+  "unique_slugs": 18,
+  "screen_rows": 19,
+  "duplicate_screen_entry": "COMPOSIO_WAIT_FOR_CONNECTION",
+  "count_note": "The toolkit page lists COMPOSIO_WAIT_FOR_CONNECTION twice, so the screen has 19 rows. Schema retrieval returns 18 unique slugs, which is what tools stores.",
   "schemas_retrieved_via": "composio___COMPOSIO_GET_TOOL_SCHEMAS",
   "execution_status": {
     "directly_executable_from_this_connector": false,

@@ -28,4 +28,4 @@ Both are active, trigger-only (no schedule), and persist across chats.
 
 ## Composio meta-tool slugs
 
-All 19 slugs from the Composio toolkit page have schemas retrievable via `COMPOSIO_GET_TOOL_SCHEMAS`. None are directly executable from this connector ("Cannot execute meta tool directly"). Their jobs are covered by the Automations tools and `COMPOSIO_MANAGE_CONNECTIONS`.
+All 18 unique slugs from the Composio toolkit page have schemas retrievable via `COMPOSIO_GET_TOOL_SCHEMAS`. The page shows 19 rows because `COMPOSIO_WAIT_FOR_CONNECTION` is listed twice; the inventory stores the unique set and records that duplicate in `duplicate_screen_entry`. None are directly executable from this connector ("Cannot execute meta tool directly"). Their jobs are covered by the Automations tools and `COMPOSIO_MANAGE_CONNECTIONS`. `audit.inventory` checks that `schemas_retrieved` matches the `tools` object so a screen-row count cannot be written as a schema count again.
