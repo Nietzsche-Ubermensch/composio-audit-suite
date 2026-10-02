@@ -180,7 +180,58 @@ def test_automation_errors_reject_blank_repo_name():
             ],
         }
     )
-    assert any("dimensions.repo" in error for error in errors)
+    assert any("entries must be non-empty strings" in error for error in errors)
+    assert not any("has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_whitespace_repo_name():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["   "]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("entries must be non-empty strings" in error for error in errors)
+    assert not any("has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_non_list_repo():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": "1402031134"},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("must be a list of non-empty strings" in error for error in errors)
+    assert not any("has no dimensions.repo" in error for error in errors)
 
 
 def test_automation_errors_reject_non_string_repo_entry():
