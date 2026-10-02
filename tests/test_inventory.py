@@ -96,7 +96,8 @@ def test_automation_errors_reject_non_dict_dimensions():
             ],
         }
     )
-    assert any("dimensions.repo" in error for error in errors)
+    assert any("dimensions must be an object" in error for error in errors)
+    assert not any("must be non-empty strings" in error for error in errors)
 
 
 def test_inventory_errors_reject_bool_unique_slugs():
@@ -294,3 +295,83 @@ def test_inventory_errors_strip_duplicate_screen_slug():
         }
     )
     assert not any("duplicate_screen_entry" in error for error in errors)
+
+
+def test_non_dict_dimensions_do_not_claim_repo_entries():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": None,
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions must be an object" in error for error in errors)
+    assert not any("must be non-empty strings" in error for error in errors)
+
+
+def test_missing_repo_is_not_reported_as_bad_entries():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"event": "push"},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("has no dimensions.repo" in error for error in errors)
+    assert not any("must be non-empty strings" in error for error in errors)
+
+
+def test_padded_tool_key_matches_stripped_duplicate_screen_entry():
+    errors = inventory_errors(
+        {
+            "meta_tools_total": 1,
+            "schemas_retrieved": 1,
+            "unique_slugs": 1,
+            "screen_rows": 2,
+            "duplicate_screen_entry": "COMPOSIO_SEARCH_TOOLS",
+            "tools": {" COMPOSIO_SEARCH_TOOLS ": {"status": "live"}},
+        }
+    )
+    assert not any("duplicate_screen_entry" in error for error in errors)
+    assert not any("duplicate slugs" in error for error in errors)
+
+
+def test_padded_tool_keys_count_as_duplicate_slugs():
+    errors = inventory_errors(
+        {
+            "meta_tools_total": 2,
+            "schemas_retrieved": 2,
+            "unique_slugs": 2,
+            "tools": {
+                "COMPOSIO_SEARCH_TOOLS": {"status": "live"},
+                " COMPOSIO_SEARCH_TOOLS ": {"status": "live"},
+            },
+        }
+    )
+    assert any("tools contains duplicate slugs" in error for error in errors)

@@ -35,7 +35,7 @@ def _count(value: Any) -> bool:
 
 
 def _repo_names(dimensions: Any) -> list[str] | None:
-    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
+    """Return stripped repo names, or None if dimensions.repo is unusable."""
     if not isinstance(dimensions, dict):
         return None
     repos = dimensions.get("repo")
@@ -45,8 +45,12 @@ def _repo_names(dimensions: Any) -> list[str] | None:
     for repo in repos:
         if not isinstance(repo, str) or not repo.strip():
             return None
-        names.append(repo)
+        names.append(repo.strip())
     return names
+
+
+def _tool_slugs(tools: dict[Any, Any]) -> list[str]:
+    return [key.strip() for key in tools if isinstance(key, str) and key.strip()]
 
 
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
@@ -56,8 +60,8 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
     if not isinstance(tools, dict) or not tools:
         return ["tools must be a non-empty object keyed by slug"]
 
-    slugs = list(tools)
-    if len(slugs) != len(set(slugs)):
+    slugs = _tool_slugs(tools)
+    if len(slugs) != len(tools) or len(slugs) != len(set(slugs)):
         errors.append("tools contains duplicate slugs")
 
     if "unique_slugs" not in payload:
@@ -92,7 +96,7 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
             errors.append("duplicate_screen_entry must be a non-empty slug")
         else:
             slug = duplicate.strip()
-            if slug not in tools:
+            if slug not in set(slugs):
                 errors.append(f"duplicate_screen_entry {slug} is not in tools")
     elif has_rows or has_duplicate:
         errors.append("screen_rows and duplicate_screen_entry must be set together")
@@ -163,7 +167,15 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
-        if _repo_names(trigger.get("dimensions")) is None:
+        dimensions = trigger.get("dimensions")
+        if not isinstance(dimensions, dict):
+            errors.append(f"automations[{index}] trigger dimensions must be an object")
+            continue
+        repos = dimensions.get("repo")
+        if not isinstance(repos, list) or not repos:
+            errors.append(f"automations[{index}] trigger has no dimensions.repo")
+            continue
+        if _repo_names(dimensions) is None:
             errors.append(
                 f"automations[{index}] trigger dimensions.repo must be non-empty strings"
             )
