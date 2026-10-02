@@ -52,21 +52,25 @@ def _string_list(value: Any) -> list[str] | None:
     return names
 
 
-def _catalog_list_errors(field: str, value: Any, required: str) -> list[str]:
-    """Validate a catalog list without collapsing every failure into 'missing'."""
+def _catalog_list_errors(field: str, value: Any, required: str) -> tuple[list[str], list[str] | None]:
+    """Validate a catalog list without collapsing every failure into 'missing'.
+
+    Returns stripped names when every entry is a non-empty string, including
+    when those names contain duplicates, so callers can still check membership.
+    """
     if not isinstance(value, list) or not value:
-        return [f"{field} must be a non-empty list of strings including {required}"]
+        return [f"{field} must be a non-empty list of strings including {required}"], None
     names: list[str] = []
-    for item in value:
+    for index, item in enumerate(value):
         if not isinstance(item, str) or not item.strip():
-            return [f"{field} must contain only non-empty strings"]
+            return [f"{field}[{index}] must be a non-empty string"], None
         names.append(item.strip())
     errors: list[str] = []
     if len(names) != len(set(names)):
         errors.append(f"{field} contains duplicate entries")
     if required not in names:
         errors.append(f"{field} must include {required}")
-    return errors
+    return errors, names
 
 
 def _repo_names(dimensions: Any) -> list[str] | None:
@@ -162,22 +166,18 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         errors.append(
             f"count {count} != automations length {len(automations)}"
         )
-    providers = _string_list(payload.get("catalog_providers_available"))
-    errors.extend(
-        _catalog_list_errors(
-            "catalog_providers_available",
-            payload.get("catalog_providers_available"),
-            "github",
-        )
+    provider_errors, providers = _catalog_list_errors(
+        "catalog_providers_available",
+        payload.get("catalog_providers_available"),
+        "github",
     )
-    trigger_types = _string_list(payload.get("github_trigger_types"))
-    errors.extend(
-        _catalog_list_errors(
-            "github_trigger_types",
-            payload.get("github_trigger_types"),
-            "push_to_branch",
-        )
+    errors.extend(provider_errors)
+    type_errors, trigger_types = _catalog_list_errors(
+        "github_trigger_types",
+        payload.get("github_trigger_types"),
+        "push_to_branch",
     )
+    errors.extend(type_errors)
 
     seen: set[str] = set()
     for index, item in enumerate(automations):
@@ -214,18 +214,25 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
         provider = trigger.get("provider")
+        provider_name = None
         if not isinstance(provider, str) or not provider.strip():
             errors.append(f"automations[{index}].trigger.provider must be a non-empty string")
-        elif providers is not None and provider.strip() not in providers:
-            errors.append(
-                f"automations[{index}].trigger.provider {provider.strip()} is not in catalog_providers_available"
-            )
+        else:
+            provider_name = provider.strip()
+            if providers is not None and provider_name not in providers:
+                errors.append(
+                    f"automations[{index}].trigger.provider {provider_name} is not in catalog_providers_available"
+                )
         trigger_type = trigger.get("trigger_type")
         if not isinstance(trigger_type, str) or not trigger_type.strip():
             errors.append(
                 f"automations[{index}].trigger.trigger_type must be a non-empty string"
             )
-        elif trigger_types is not None and trigger_type.strip() not in trigger_types:
+        elif (
+            provider_name == "github"
+            and trigger_types is not None
+            and trigger_type.strip() not in trigger_types
+        ):
             errors.append(
                 f"automations[{index}].trigger.trigger_type {trigger_type.strip()} is not in github_trigger_types"
             )

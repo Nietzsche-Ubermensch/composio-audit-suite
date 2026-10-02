@@ -204,8 +204,8 @@ def test_automation_errors_reject_blank_trigger_fields_and_junk_catalog():
             ],
         }
     )
-    assert any("catalog_providers_available must contain only non-empty strings" in error for error in errors)
-    assert any("github_trigger_types must contain only non-empty strings" in error for error in errors)
+    assert any("catalog_providers_available[1] must be a non-empty string" in error for error in errors)
+    assert any("github_trigger_types[1] must be a non-empty string" in error for error in errors)
     assert not any("must include github" in error for error in errors)
     assert not any("must include push_to_branch" in error for error in errors)
     assert any("name must be a non-empty string" in error for error in errors)
@@ -295,7 +295,7 @@ def test_automation_errors_reject_trigger_not_in_catalog():
         }
     )
     assert any("provider slack is not in catalog_providers_available" in error for error in errors)
-    assert any("trigger_type pull_request is not in github_trigger_types" in error for error in errors)
+    assert not any("github_trigger_types" in error for error in errors)
 
 
 def test_automation_errors_missing_catalog_token_is_not_a_junk_error():
@@ -309,3 +309,65 @@ def test_automation_errors_missing_catalog_token_is_not_a_junk_error():
     )
     assert "catalog_providers_available must include github" in errors
     assert "github_trigger_types must include push_to_branch" in errors
+
+
+def test_automation_errors_check_github_trigger_type_only_for_github():
+    errors = automation_errors(
+        {
+            "count": 2,
+            "catalog_providers_available": ["github", "slack"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "slack-task",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "slack",
+                        "trigger_type": "message",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                },
+                {
+                    "taskId": "github-task",
+                    "name": "n2",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "pull_request",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                },
+            ],
+        }
+    )
+    assert errors == [
+        "automations[1].trigger.trigger_type pull_request is not in github_trigger_types"
+    ]
+
+
+def test_automation_errors_still_checks_provider_when_catalog_has_duplicates():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github", " github "],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "slack",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert "catalog_providers_available contains duplicate entries" in errors
+    assert any("provider slack is not in catalog_providers_available" in error for error in errors)
