@@ -181,3 +181,61 @@ def test_automation_errors_reject_blank_repo_name():
         }
     )
     assert any("dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_non_bool_is_active_and_blank_name():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "  ",
+                    "isActive": 1,
+                    "prompt_summary": "",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("name must be a non-empty string" in error for error in errors)
+    assert any("isActive must be a bool" in error for error in errors)
+    assert any("prompt_summary must be a non-empty string" in error for error in errors)
+
+
+def test_automation_errors_treat_padded_task_ids_as_duplicates():
+    trigger = {
+        "provider": "github",
+        "trigger_type": "push_to_branch",
+        "dimensions": {"repo": ["1402031134"]},
+    }
+    errors = automation_errors(
+        {
+            "count": 2,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": trigger,
+                },
+                {
+                    "taskId": " t ",
+                    "name": "n2",
+                    "isActive": False,
+                    "prompt_summary": "p",
+                    "trigger": trigger,
+                },
+            ],
+        }
+    )
+    assert any("duplicate taskId t" in error for error in errors)
