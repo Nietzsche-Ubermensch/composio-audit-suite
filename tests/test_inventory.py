@@ -239,6 +239,7 @@ def test_automation_errors_treat_padded_task_ids_as_duplicates():
         }
     )
     assert any("duplicate taskId t" in error for error in errors)
+    assert any("must not have surrounding whitespace: ' t '" in error for error in errors)
 
 
 def test_automation_errors_reject_unique_padded_task_id():
@@ -249,7 +250,7 @@ def test_automation_errors_reject_unique_padded_task_id():
             "github_trigger_types": ["push_to_branch"],
             "automations": [
                 {
-                    "taskId": " t ",
+                    "taskId": "\ttask-1\n",
                     "name": "n",
                     "isActive": True,
                     "prompt_summary": "p",
@@ -262,5 +263,30 @@ def test_automation_errors_reject_unique_padded_task_id():
             ],
         }
     )
-    assert any("must not have surrounding whitespace" in error for error in errors)
-    assert not any("duplicate taskId" in error for error in errors)
+    assert errors == [
+        "automations[0].taskId must not have surrounding whitespace: '\\ttask-1\\n'"
+    ]
+
+
+def test_automation_errors_keep_internal_task_id_spaces():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "task 1",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert errors == []
