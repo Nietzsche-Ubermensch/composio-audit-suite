@@ -141,7 +141,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             normalized_id = task_id.strip()
             if task_id != normalized_id:
                 errors.append(
-                    f"automations[{index}].taskId must not have surrounding whitespace"
+                    f"automations[{index}].taskId must not have surrounding whitespace: {task_id!r}"
                 )
             if normalized_id in seen:
                 errors.append(f"duplicate taskId {normalized_id}")
