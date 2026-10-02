@@ -25,6 +25,7 @@ def test_validate_response_ok():
             slug="s",
             description="demo",
             output_schema={"required": ["id"]},
+        )
     )
     assert reg.validate_response("t", "s", {"id": 1}) == []
 
