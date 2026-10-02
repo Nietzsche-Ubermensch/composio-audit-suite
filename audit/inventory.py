@@ -149,6 +149,12 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
-        if _repo_names(trigger.get("dimensions")) is None:
+        dimensions = trigger.get("dimensions")
+        repos = dimensions.get("repo") if isinstance(dimensions, dict) else None
+        if not isinstance(repos, list) or not repos:
             errors.append(f"automations[{index}] trigger has no dimensions.repo")
+        elif _repo_names(dimensions) is None:
+            errors.append(
+                f"automations[{index}] dimensions.repo entries must be non-empty strings"
+            )
     return errors
