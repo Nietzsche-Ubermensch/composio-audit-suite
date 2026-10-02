@@ -45,6 +45,8 @@ def _repo_names(dimensions: Any) -> list[str] | None:
     for repo in repos:
         if not isinstance(repo, str) or not repo.strip():
             return None
+        if repo != repo.strip():
+            return None
         names.append(repo)
     return names
 
@@ -150,11 +152,17 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         name = item["name"]
         if not isinstance(name, str) or not name.strip():
             errors.append(f"automations[{index}].name must be a non-empty string")
+        elif name != name.strip():
+            errors.append(f"automations[{index}].name must not have surrounding whitespace")
         if not isinstance(item["isActive"], bool):
             errors.append(f"automations[{index}].isActive must be a bool")
         summary = item["prompt_summary"]
         if not isinstance(summary, str) or not summary.strip():
             errors.append(f"automations[{index}].prompt_summary must be a non-empty string")
+        elif summary != summary.strip():
+            errors.append(
+                f"automations[{index}].prompt_summary must not have surrounding whitespace"
+            )
         trigger = item["trigger"]
         if not isinstance(trigger, dict):
             errors.append(f"automations[{index}].trigger must be an object")
