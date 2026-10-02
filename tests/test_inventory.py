@@ -245,3 +245,99 @@ def test_automation_errors_reject_blank_name_and_non_bool_active():
     assert any("name must be a non-empty string" in error for error in errors)
     assert any("prompt_summary must be a non-empty string" in error for error in errors)
     assert any("isActive must be a bool" in error for error in errors)
+
+
+def test_automation_errors_reject_padded_task_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": " t ",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("taskId must be a non-empty string" in error for error in errors)
+
+
+def test_automation_errors_reject_unknown_trigger_type():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "not_a_real_event",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("trigger_type must be a github trigger type" in error for error in errors)
+
+
+def test_automation_errors_reject_provider_outside_catalog():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "not-a-provider",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("provider must be a catalog provider" in error for error in errors)
+
+
+def test_automation_errors_reject_blank_repo_name_explicitly():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["  "]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo entries must be non-empty strings" in error for error in errors)

@@ -34,19 +34,28 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _repo_names(dimensions: Any) -> list[str] | None:
-    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
-    if not isinstance(dimensions, dict):
-        return None
+def _tight_string(value: Any) -> bool:
+    """Non-empty string with no leading or trailing whitespace."""
+    return isinstance(value, str) and bool(value) and value == value.strip()
+
+
+def _catalog_names(value: Any) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {item for item in value if _tight_string(item)}
+
+
+def _repo_error(dimensions: Any) -> str | None:
+    """Return an error when dimensions.repo is missing or not usable names."""
+    if not isinstance(dimensions, dict) or "repo" not in dimensions:
+        return "trigger has no dimensions.repo"
     repos = dimensions.get("repo")
     if not isinstance(repos, list) or not repos:
-        return None
-    names: list[str] = []
+        return "trigger has no dimensions.repo"
     for repo in repos:
-        if not isinstance(repo, str) or not repo.strip():
-            return None
-        names.append(repo)
-    return names
+        if not _tight_string(repo):
+            return "dimensions.repo entries must be non-empty strings"
+    return None
 
 
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
@@ -124,6 +133,8 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
     trigger_types = payload.get("github_trigger_types")
     if not isinstance(trigger_types, list) or "push_to_branch" not in trigger_types:
         errors.append("github_trigger_types must include push_to_branch")
+    known_providers = _catalog_names(providers)
+    known_github_types = _catalog_names(trigger_types)
 
     seen: set[str] = set()
     for index, item in enumerate(automations):
@@ -135,7 +146,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             errors.append(f"automations[{index}] missing {missing}")
             continue
         task_id = item["taskId"]
-        if not isinstance(task_id, str) or not task_id.strip():
+        if not _tight_string(task_id):
             errors.append(f"automations[{index}].taskId must be a non-empty string")
         elif task_id in seen:
             errors.append(f"duplicate taskId {task_id}")
@@ -159,6 +170,21 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
-        if _repo_names(trigger.get("dimensions")) is None:
-            errors.append(f"automations[{index}] trigger has no dimensions.repo")
+        provider = trigger.get("provider")
+        if not _tight_string(provider) or provider not in known_providers:
+            errors.append(
+                f"automations[{index}].trigger.provider must be a catalog provider"
+            )
+        trigger_type = trigger.get("trigger_type")
+        if not _tight_string(trigger_type):
+            errors.append(
+                f"automations[{index}].trigger.trigger_type must be a non-empty string"
+            )
+        elif provider == "github" and trigger_type not in known_github_types:
+            errors.append(
+                f"automations[{index}].trigger.trigger_type must be a github trigger type"
+            )
+        repo_error = _repo_error(trigger.get("dimensions"))
+        if repo_error is not None:
+            errors.append(f"automations[{index}] {repo_error}")
     return errors
