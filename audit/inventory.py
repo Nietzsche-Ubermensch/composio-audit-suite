@@ -34,18 +34,25 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _string_list(value: Any) -> list[str] | None:
+    """Return stripped non-empty strings, or None if any entry is unusable."""
+    if not isinstance(value, list) or not value:
+        return None
+    names: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            return None
+        names.append(item.strip())
+    return names
+
+
 def _repo_names(dimensions: Any) -> list[str] | None:
     """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
     if not isinstance(dimensions, dict):
         return None
-    repos = dimensions.get("repo")
-    if not isinstance(repos, list) or not repos:
+    names = _string_list(dimensions.get("repo"))
+    if names is None or len(names) != len(set(names)):
         return None
-    names: list[str] = []
-    for repo in repos:
-        if not isinstance(repo, str) or not repo.strip():
-            return None
-        names.append(repo)
     return names
 
 
@@ -118,11 +125,11 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         errors.append(
             f"count {count} != automations length {len(automations)}"
         )
-    providers = payload.get("catalog_providers_available")
-    if not isinstance(providers, list) or "github" not in providers:
+    providers = _string_list(payload.get("catalog_providers_available"))
+    if providers is None or "github" not in providers:
         errors.append("catalog_providers_available must include github")
-    trigger_types = payload.get("github_trigger_types")
-    if not isinstance(trigger_types, list) or "push_to_branch" not in trigger_types:
+    trigger_types = _string_list(payload.get("github_trigger_types"))
+    if trigger_types is None or "push_to_branch" not in trigger_types:
         errors.append("github_trigger_types must include push_to_branch")
 
     seen: set[str] = set()
@@ -137,10 +144,20 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         task_id = item["taskId"]
         if not isinstance(task_id, str) or not task_id.strip():
             errors.append(f"automations[{index}].taskId must be a non-empty string")
-        elif task_id in seen:
-            errors.append(f"duplicate taskId {task_id}")
         else:
-            seen.add(task_id)
+            normalized_id = task_id.strip()
+            if normalized_id in seen:
+                errors.append(f"duplicate taskId {normalized_id}")
+            else:
+                seen.add(normalized_id)
+        name = item["name"]
+        if not isinstance(name, str) or not name.strip():
+            errors.append(f"automations[{index}].name must be a non-empty string")
+        if not isinstance(item["isActive"], bool):
+            errors.append(f"automations[{index}].isActive must be a bool")
+        summary = item["prompt_summary"]
+        if not isinstance(summary, str) or not summary.strip():
+            errors.append(f"automations[{index}].prompt_summary must be a non-empty string")
         trigger = item["trigger"]
         if not isinstance(trigger, dict):
             errors.append(f"automations[{index}].trigger must be an object")
@@ -149,6 +166,14 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
+        provider = trigger.get("provider")
+        if not isinstance(provider, str) or not provider.strip():
+            errors.append(f"automations[{index}].trigger.provider must be a non-empty string")
+        trigger_type = trigger.get("trigger_type")
+        if not isinstance(trigger_type, str) or not trigger_type.strip():
+            errors.append(
+                f"automations[{index}].trigger.trigger_type must be a non-empty string"
+            )
         if _repo_names(trigger.get("dimensions")) is None:
             errors.append(f"automations[{index}] trigger has no dimensions.repo")
     return errors
