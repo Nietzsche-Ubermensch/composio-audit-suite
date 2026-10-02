@@ -9,6 +9,20 @@ INVENTORY = ROOT / "data" / "composio-meta-inventory.json"
 AUTOMATIONS = ROOT / "data" / "automations.json"
 
 
+def _automation(task_id: str, repo: str = "1402031134") -> dict:
+    return {
+        "taskId": task_id,
+        "name": "n",
+        "isActive": True,
+        "prompt_summary": "p",
+        "trigger": {
+            "provider": "github",
+            "trigger_type": "push_to_branch",
+            "dimensions": {"repo": [repo]},
+        },
+    }
+
+
 def test_meta_inventory_counts_match_unique_slugs():
     errors = inventory_errors(load_json(INVENTORY))
     assert errors == []
@@ -180,4 +194,55 @@ def test_automation_errors_reject_blank_repo_name():
             ],
         }
     )
-    assert any("dimensions.repo" in error for error in errors)
+    assert any("trigger has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_reject_whitespace_task_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [_automation("  ")],
+        }
+    )
+    assert any("taskId must be a non-empty string" in error for error in errors)
+
+
+def test_automation_errors_reject_padded_duplicate_task_id():
+    errors = automation_errors(
+        {
+            "count": 2,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [_automation("t"), _automation(" t ")],
+        }
+    )
+    assert any("duplicate taskId t" in error for error in errors)
+
+
+def test_automation_errors_reject_malformed_repo_token():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [_automation("t", repo="owner/")],
+        }
+    )
+    assert any("trigger has no dimensions.repo" in error for error in errors)
+
+
+def test_automation_errors_accept_numeric_repo_id_and_owner_name():
+    errors = automation_errors(
+        {
+            "count": 2,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                _automation("a", repo="1402031134"),
+                _automation("b", repo=" Nietzsche-Ubermensch/composio-audit-suite "),
+            ],
+        }
+    )
+    assert errors == []

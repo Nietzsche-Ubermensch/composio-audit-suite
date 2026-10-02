@@ -34,8 +34,23 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _repo_token(repo: str) -> str | None:
+    """Accept a GitHub numeric repo id or an owner/name slug. Reject blanks."""
+    token = repo.strip()
+    if not token or any(char.isspace() for char in token):
+        return None
+    if token.isdigit():
+        return token if int(token) > 0 else None
+    if token.count("/") != 1:
+        return None
+    owner, name = token.split("/")
+    if not owner or not name:
+        return None
+    return token
+
+
 def _repo_names(dimensions: Any) -> list[str] | None:
-    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
+    """Return usable repo tokens, or None if dimensions.repo is unusable."""
     if not isinstance(dimensions, dict):
         return None
     repos = dimensions.get("repo")
@@ -43,9 +58,12 @@ def _repo_names(dimensions: Any) -> list[str] | None:
         return None
     names: list[str] = []
     for repo in repos:
-        if not isinstance(repo, str) or not repo.strip():
+        if not isinstance(repo, str):
             return None
-        names.append(repo)
+        token = _repo_token(repo)
+        if token is None:
+            return None
+        names.append(token)
     return names
 
 
@@ -137,10 +155,12 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         task_id = item["taskId"]
         if not isinstance(task_id, str) or not task_id.strip():
             errors.append(f"automations[{index}].taskId must be a non-empty string")
-        elif task_id in seen:
-            errors.append(f"duplicate taskId {task_id}")
         else:
-            seen.add(task_id)
+            normalized = task_id.strip()
+            if normalized in seen:
+                errors.append(f"duplicate taskId {normalized}")
+            else:
+                seen.add(normalized)
         trigger = item["trigger"]
         if not isinstance(trigger, dict):
             errors.append(f"automations[{index}].trigger must be an object")
