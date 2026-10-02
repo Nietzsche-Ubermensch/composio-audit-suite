@@ -46,6 +46,28 @@ def _string_list(value: Any) -> list[str] | None:
     return names
 
 
+def _canonical_repo_id(item: Any) -> str | None:
+    """Return a canonical GitHub repo id, or None if the entry is not one.
+
+    Catalog snapshots store the id from automation_list_trigger_resources as a
+    decimal string. JSON numbers are accepted and stringified. bool is rejected
+    because it is an int subclass. Leading zeros and non-ASCII digits are
+    rejected: str.isdigit() is true for both "0" and "²".
+    """
+    if isinstance(item, bool):
+        return None
+    if isinstance(item, int):
+        if item <= 0:
+            return None
+        return str(item)
+    if isinstance(item, str):
+        name = item.strip()
+        if not name.isascii() or not name.isdigit() or name.startswith("0"):
+            return None
+        return name
+    return None
+
+
 def _repo_names(dimensions: Any) -> tuple[list[str] | None, str | None]:
     """Return numeric GitHub repo ids, or None plus a dimensions.repo error.
 
@@ -53,15 +75,21 @@ def _repo_names(dimensions: Any) -> tuple[list[str] | None, str | None]:
     not an owner/name slug. Padding is stripped before the digit and uniqueness
     checks so " 1402031134 " and "1402031134" are the same id.
     """
-    if not isinstance(dimensions, dict) or "repo" not in dimensions:
+    if not isinstance(dimensions, dict):
+        return None, "trigger dimensions must be an object with dimensions.repo"
+    if "repo" not in dimensions:
         return None, "trigger has no dimensions.repo"
-    names = _string_list(dimensions.get("repo"))
-    if names is None:
-        return None, "dimensions.repo entries must be non-empty strings"
+    raw = dimensions.get("repo")
+    if not isinstance(raw, list) or not raw:
+        return None, "dimensions.repo entries must be non-empty numeric GitHub repo ids"
+    names: list[str] = []
+    for item in raw:
+        repo_id = _canonical_repo_id(item)
+        if repo_id is None:
+            return None, "dimensions.repo entries must be numeric GitHub repo ids"
+        names.append(repo_id)
     if len(names) != len(set(names)):
         return None, "dimensions.repo contains duplicate repo ids"
-    if any(not name.isdigit() for name in names):
-        return None, "dimensions.repo entries must be numeric GitHub repo ids"
     return names, None
 
 

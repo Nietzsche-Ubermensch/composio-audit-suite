@@ -96,7 +96,8 @@ def test_automation_errors_reject_non_dict_dimensions():
             ],
         }
     )
-    assert any("dimensions.repo" in error for error in errors)
+    assert any("dimensions must be an object" in error for error in errors)
+    assert not any("trigger has no dimensions.repo" in error for error in errors)
 
 
 def test_inventory_errors_reject_bool_unique_slugs():
@@ -126,13 +127,14 @@ def test_automation_errors_reject_bool_count():
                     "trigger": {
                         "provider": "github",
                         "trigger_type": "push_to_branch",
-                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                        "dimensions": {"repo": ["1402031134"]},
                     },
                 }
             ],
         }
     )
     assert any("count True" in error for error in errors)
+    assert not any("dimensions.repo" in error for error in errors)
 
 
 def test_automation_errors_reject_unhashable_task_id():
@@ -150,13 +152,14 @@ def test_automation_errors_reject_unhashable_task_id():
                     "trigger": {
                         "provider": "github",
                         "trigger_type": "push_to_branch",
-                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                        "dimensions": {"repo": ["1402031134"]},
                     },
                 }
             ],
         }
     )
     assert any("taskId must be a non-empty string" in error for error in errors)
+    assert not any("dimensions.repo" in error for error in errors)
 
 
 def test_automation_errors_reject_blank_repo_name():
@@ -180,7 +183,8 @@ def test_automation_errors_reject_blank_repo_name():
             ],
         }
     )
-    assert any("dimensions.repo" in error for error in errors)
+    assert any("numeric GitHub repo ids" in error for error in errors)
+    assert not any("trigger has no dimensions.repo" in error for error in errors)
 
 
 def test_automation_errors_reject_blank_trigger_fields_and_junk_catalog():
@@ -211,7 +215,7 @@ def test_automation_errors_reject_blank_trigger_fields_and_junk_catalog():
     assert any("prompt_summary must be a non-empty string" in error for error in errors)
     assert any("trigger.provider must be a non-empty string" in error for error in errors)
     assert any("trigger.trigger_type must be a non-empty string" in error for error in errors)
-    assert any("dimensions.repo" in error for error in errors)
+    assert any("duplicate repo ids" in error for error in errors)
 
 
 def test_automation_errors_treat_padded_task_ids_as_duplicates():
@@ -244,6 +248,7 @@ def test_automation_errors_treat_padded_task_ids_as_duplicates():
         }
     )
     assert errors == ["duplicate taskId t"]
+
 
 def test_automation_errors_reject_owner_repo_slug():
     errors = automation_errors(
@@ -294,3 +299,75 @@ def test_automation_errors_reject_provider_outside_catalog():
     assert any("provider slack is not in catalog_providers_available" in error for error in errors)
     assert any("trigger_type issue_opened is not in github_trigger_types" in error for error in errors)
 
+
+def test_automation_errors_reject_leading_zero_and_unicode_digits():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["01402031134", "²"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("numeric GitHub repo ids" in error for error in errors)
+    assert not any("duplicate repo ids" in error for error in errors)
+
+
+def test_automation_errors_accept_json_number_repo_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": [1402031134]},
+                    },
+                }
+            ],
+        }
+    )
+    assert errors == []
+
+
+def test_automation_errors_reject_bool_repo_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": [True]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("numeric GitHub repo ids" in error for error in errors)
