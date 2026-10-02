@@ -39,22 +39,42 @@ def _tight_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value) and value == value.strip()
 
 
-def _catalog_names(value: Any) -> set[str]:
+def _catalog_names(value: Any) -> tuple[list[str], set[str]]:
+    """Return catalog-entry errors and the tight names that can be matched.
+
+    Padded or non-string entries used to be dropped, so membership disagreed
+    with the raw list and a trigger could miss the catalog without a catalog error.
+    """
     if not isinstance(value, list):
-        return set()
-    return {item for item in value if _tight_string(item)}
+        return [], set()
+    errors: list[str] = []
+    names: set[str] = set()
+    for item in value:
+        if not _tight_string(item):
+            errors.append("entries must be non-empty strings")
+            continue
+        names.add(item)
+    return errors, names
 
 
 def _repo_error(dimensions: Any) -> str | None:
-    """Return an error when dimensions.repo is missing or not usable names."""
+    """Return an error when dimensions.repo is missing or not numeric ids.
+
+    Automations resolves owner/name to a numeric repo id before create.
+    A slug, a bare string, or a padded token is not a usable dimension.
+    """
     if not isinstance(dimensions, dict) or "repo" not in dimensions:
         return "trigger has no dimensions.repo"
     repos = dimensions.get("repo")
-    if not isinstance(repos, list) or not repos:
+    if not isinstance(repos, list):
+        return "dimensions.repo must be a non-empty list"
+    if not repos:
         return "trigger has no dimensions.repo"
     for repo in repos:
         if not _tight_string(repo):
             return "dimensions.repo entries must be non-empty strings"
+        if not repo.isdigit():
+            return "dimensions.repo entries must be numeric repo ids"
     return None
 
 
@@ -128,13 +148,17 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             f"count {count} != automations length {len(automations)}"
         )
     providers = payload.get("catalog_providers_available")
-    if not isinstance(providers, list) or "github" not in providers:
+    provider_entry_errors, known_providers = _catalog_names(providers)
+    if provider_entry_errors:
+        errors.append("catalog_providers_available entries must be non-empty strings")
+    if not isinstance(providers, list) or "github" not in known_providers:
         errors.append("catalog_providers_available must include github")
     trigger_types = payload.get("github_trigger_types")
-    if not isinstance(trigger_types, list) or "push_to_branch" not in trigger_types:
+    type_entry_errors, known_github_types = _catalog_names(trigger_types)
+    if type_entry_errors:
+        errors.append("github_trigger_types entries must be non-empty strings")
+    if not isinstance(trigger_types, list) or "push_to_branch" not in known_github_types:
         errors.append("github_trigger_types must include push_to_branch")
-    known_providers = _catalog_names(providers)
-    known_github_types = _catalog_names(trigger_types)
 
     seen: set[str] = set()
     for index, item in enumerate(automations):

@@ -366,3 +366,130 @@ def test_automation_errors_reject_padded_name_and_summary():
     )
     assert any("name must be a non-empty string" in error for error in errors)
     assert any("prompt_summary must be a non-empty string" in error for error in errors)
+
+
+def test_automation_errors_reject_padded_catalog_entries():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github", " github"],
+            "github_trigger_types": ["push_to_branch", " push_to_branch "],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any(
+        "catalog_providers_available entries must be non-empty strings" in error
+        for error in errors
+    )
+    assert any(
+        "github_trigger_types entries must be non-empty strings" in error
+        for error in errors
+    )
+
+
+def test_automation_errors_reject_owner_name_repo_slug():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo entries must be numeric repo ids" in error for error in errors)
+
+
+def test_automation_errors_accept_numeric_repo_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert errors == []
+
+
+def test_automation_errors_reject_non_list_repo():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": "1402031134"},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo must be a non-empty list" in error for error in errors)
+
+
+def test_automation_errors_reject_padded_trigger_type():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": " push_to_branch ",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("trigger_type must be a non-empty string" in error for error in errors)
