@@ -264,3 +264,55 @@ def test_automation_errors_reject_unique_padded_task_id():
     )
     assert any("must not have surrounding whitespace" in error for error in errors)
     assert not any("duplicate taskId" in error for error in errors)
+
+
+def test_automation_errors_reject_padded_and_unknown_trigger_catalog_fields():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": " github ",
+                        "trigger_type": " cron ",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("provider must not have surrounding whitespace" in error for error in errors)
+    assert any("trigger_type must not have surrounding whitespace" in error for error in errors)
+    assert not any("is not in catalog_providers_available" in error for error in errors)
+    assert not any("is not in github_trigger_types" in error for error in errors)
+
+
+def test_automation_errors_reject_provider_and_trigger_type_outside_catalog():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "slack",
+                        "trigger_type": "cron",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("provider slack is not in catalog_providers_available" in error for error in errors)
+    assert not any("is not in github_trigger_types" in error for error in errors)

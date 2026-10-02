@@ -163,6 +163,38 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
+        provider = trigger.get("provider")
+        if not isinstance(provider, str) or not provider.strip():
+            errors.append(f"automations[{index}].trigger.provider must be a non-empty string")
+            provider = None
+        elif provider != provider.strip():
+            errors.append(
+                f"automations[{index}].trigger.provider must not have surrounding whitespace"
+            )
+            provider = None
+        elif isinstance(providers, list) and provider not in providers:
+            errors.append(
+                f"automations[{index}].trigger.provider {provider} is not in catalog_providers_available"
+            )
+        trigger_type = trigger.get("trigger_type")
+        if not isinstance(trigger_type, str) or not trigger_type.strip():
+            errors.append(
+                f"automations[{index}].trigger.trigger_type must be a non-empty string"
+            )
+            trigger_type = None
+        elif trigger_type != trigger_type.strip():
+            errors.append(
+                f"automations[{index}].trigger.trigger_type must not have surrounding whitespace"
+            )
+            trigger_type = None
+        elif (
+            provider == "github"
+            and isinstance(trigger_types, list)
+            and trigger_type not in trigger_types
+        ):
+            errors.append(
+                f"automations[{index}].trigger.trigger_type {trigger_type} is not in github_trigger_types"
+            )
         if _repo_names(trigger.get("dimensions")) is None:
             errors.append(f"automations[{index}] trigger has no dimensions.repo")
     return errors
