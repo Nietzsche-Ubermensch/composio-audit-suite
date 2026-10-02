@@ -34,21 +34,25 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _repo_names(dimensions: Any) -> list[str] | None:
-    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
+def _repo_names(dimensions: Any) -> tuple[list[str] | None, str | None]:
+    """Return repo names plus a specific error when dimensions.repo is unusable.
+
+    Padding is reported separately from a missing list so a padded id is not
+    described as if the field were absent.
+    """
     if not isinstance(dimensions, dict):
-        return None
+        return None, "trigger has no dimensions.repo"
     repos = dimensions.get("repo")
     if not isinstance(repos, list) or not repos:
-        return None
+        return None, "trigger has no dimensions.repo"
     names: list[str] = []
     for repo in repos:
         if not isinstance(repo, str) or not repo.strip():
-            return None
+            return None, "trigger has no dimensions.repo"
         if repo != repo.strip():
-            return None
+            return None, "dimensions.repo entries must not have surrounding whitespace"
         names.append(repo)
-    return names
+    return names, None
 
 
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
@@ -171,6 +175,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
-        if _repo_names(trigger.get("dimensions")) is None:
-            errors.append(f"automations[{index}] trigger has no dimensions.repo")
+        _, repo_error = _repo_names(trigger.get("dimensions"))
+        if repo_error is not None:
+            errors.append(f"automations[{index}] {repo_error}")
     return errors
