@@ -40,13 +40,16 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _repo_token(repo: str) -> str | None:
-    """Accept a GitHub numeric repo id or an owner/name slug. Reject blanks.
+def _repo_token(repo: Any) -> str | None:
+    """Accept a GitHub numeric repo id or an owner/name slug. Never raise.
 
     Numeric ids must be ASCII digits. str.isdigit() is true for superscript
     and other non-decimal digits that int() rejects, which would crash the
-    validator instead of returning an error.
+    validator instead of returning an error. Non-strings are rejected the
+    same way so a caller cannot hit AttributeError on strip().
     """
+    if not isinstance(repo, str):
+        return None
     token = repo.strip()
     if not token or any(char.isspace() for char in token):
         return None
@@ -56,6 +59,8 @@ def _repo_token(repo: str) -> str | None:
         return None
     owner, name = token.split("/")
     if owner in {".", ".."} or name in {".", ".."} or name.startswith("."):
+        return None
+    if name.lower().endswith(".git"):
         return None
     if not _OWNER_RE.fullmatch(owner) or not _NAME_RE.fullmatch(name):
         return None
@@ -72,8 +77,6 @@ def _repo_names(dimensions: Any) -> list[str] | None:
     names: list[str] = []
     seen: set[str] = set()
     for repo in repos:
-        if not isinstance(repo, str):
-            return None
         token = _repo_token(repo)
         if token is None or token in seen:
             return None
