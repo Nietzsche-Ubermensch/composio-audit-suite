@@ -341,3 +341,28 @@ def test_automation_errors_reject_blank_repo_name_explicitly():
         }
     )
     assert any("dimensions.repo entries must be non-empty strings" in error for error in errors)
+
+
+def test_automation_errors_reject_padded_name_and_summary():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": " n ",
+                    "isActive": True,
+                    "prompt_summary": " p ",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("name must be a non-empty string" in error for error in errors)
+    assert any("prompt_summary must be a non-empty string" in error for error in errors)

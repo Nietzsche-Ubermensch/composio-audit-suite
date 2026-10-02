@@ -153,10 +153,10 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         else:
             seen.add(task_id)
         name = item["name"]
-        if not isinstance(name, str) or not name.strip():
+        if not _tight_string(name):
             errors.append(f"automations[{index}].name must be a non-empty string")
         summary = item["prompt_summary"]
-        if not isinstance(summary, str) or not summary.strip():
+        if not _tight_string(summary):
             errors.append(
                 f"automations[{index}].prompt_summary must be a non-empty string"
             )
