@@ -282,3 +282,28 @@ def test_automation_errors_reject_dot_repo_segments_and_duplicate_tokens():
         }
     )
     assert any("trigger has no dimensions.repo" in error for error in dup_errors)
+
+def test_automation_errors_reject_zero_and_unreal_slugs_without_raising():
+    errors = automation_errors(
+        {
+            "count": 3,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                _automation("zero", repo="0"),
+                _automation("slash", repo="owner/name/extra"),
+                _automation("bad", repo="not a slug"),
+            ],
+        }
+    )
+    assert len(errors) == 3
+    assert all("trigger has no dimensions.repo" in error for error in errors)
+
+
+def test_inventory_module_is_not_a_placeholder():
+    source = (ROOT / "audit" / "inventory.py").read_text(encoding="utf-8")
+    assert "PLACEHOLDER" not in source
+    assert "see-file" not in source
+    assert "def automation_errors" in source
+    assert "def _repo_token" in source
+

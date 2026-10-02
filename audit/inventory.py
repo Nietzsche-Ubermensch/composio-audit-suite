@@ -21,10 +21,11 @@ from typing import Any
 REQUIRED_AUTOMATION_KEYS = ("taskId", "name", "isActive", "trigger", "prompt_summary")
 REQUIRED_TRIGGER_KEYS = ("provider", "trigger_type", "dimensions")
 
-# GitHub login: 1-39 alphanumeric/hyphen, cannot start or end with a hyphen.
+# GitHub login: alphanumeric, internal hyphens, 1-39 chars, no leading/trailing hyphen.
 _OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
-# GitHub repo name: 1-100 of alphanumeric, dot, underscore, hyphen; not . or ..
+# Repository name: letters, digits, dot, underscore, hyphen. Not empty, not .git.
 _NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+_ASCII_DIGITS = re.compile(r"^[0-9]+$")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -40,26 +41,38 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _repo_token(repo: str) -> str | None:
-    """Accept a GitHub numeric repo id or an owner/name slug. Reject blanks.
+def _repo_token(repo: Any) -> str | None:
+    """Accept a positive GitHub numeric repo id or an owner/name slug.
 
-    Numeric ids must be ASCII digits. str.isdigit() is true for superscript
-    and other non-decimal digits that int() rejects, which would crash the
-    validator instead of returning an error.
+    Returns None for blanks, zero, extra slashes, unicode digits, and tokens
+    that are not real GitHub owner/name slugs. Never raises. str.isdigit()
+    is true for characters such as superscript two, and int() then raises.
     """
-    token = repo.strip()
-    if not token or any(char.isspace() for char in token):
+    try:
+        if not isinstance(repo, str):
+            return None
+        token = repo.strip()
+        if not token or any(char.isspace() for char in token):
+            return None
+        if _ASCII_DIGITS.fullmatch(token):
+            number = int(token)
+            return token if number > 0 else None
+        if token.count("/") != 1:
+            return None
+        owner, name = token.split("/")
+        if not _OWNER_RE.fullmatch(owner):
+            return None
+        if (
+            not name
+            or name in {".", ".."}
+            or name.startswith(".")
+            or name.endswith(".git")
+            or not _NAME_RE.fullmatch(name)
+        ):
+            return None
+        return f"{owner}/{name}"
+    except (TypeError, ValueError):
         return None
-    if token.isascii() and token.isdigit():
-        return token if int(token) > 0 else None
-    if token.count("/") != 1:
-        return None
-    owner, name = token.split("/")
-    if owner in {".", ".."} or name in {".", ".."} or name.startswith("."):
-        return None
-    if not _OWNER_RE.fullmatch(owner) or not _NAME_RE.fullmatch(name):
-        return None
-    return token
 
 
 def _repo_names(dimensions: Any) -> list[str] | None:
@@ -72,8 +85,6 @@ def _repo_names(dimensions: Any) -> list[str] | None:
     names: list[str] = []
     seen: set[str] = set()
     for repo in repos:
-        if not isinstance(repo, str):
-            return None
         token = _repo_token(repo)
         if token is None or token in seen:
             return None
@@ -171,11 +182,11 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if not isinstance(task_id, str) or not task_id.strip():
             errors.append(f"automations[{index}].taskId must be a non-empty string")
         else:
-            normalized = task_id.strip()
-            if task_id != normalized:
+            if task_id != task_id.strip():
                 errors.append(
                     f"automations[{index}].taskId must not have surrounding whitespace"
                 )
+            normalized = task_id.strip()
             if normalized in seen:
                 errors.append(f"duplicate taskId {normalized}")
             else:
