@@ -1,2 +1,1 @@
-from pathlib import Path
-text = Path('audit/inventory.py').read_text()
+PLACEHOLDER_DO_NOT_USE
