@@ -1,0 +1,32 @@
+{
+  "listed_at": "2026-10-02T16:30:00Z",
+  "count": 2,
+  "automations": [
+    {
+      "taskId": "b66a99d1-1884-41ed-bb65-cdede8fe99cf",
+      "name": "composio-repo-push-monitor",
+      "isActive": true,
+      "trigger": {
+        "provider": "github",
+        "trigger_type": "push_to_branch",
+        "dimensions": {"repo": ["1386493327"]},
+        "repo_display_name": "Nietzsche-Ubermensch/composio"
+      },
+      "prompt_summary": "On push: read commits, review code for bugs/missing tests, open PR with fixes, report back."
+    },
+    {
+      "taskId": "299c5ecc-b4ae-4814-ac29-a3cf09605169",
+      "name": "composio-audit-suite-push-monitor",
+      "isActive": true,
+      "trigger": {
+        "provider": "github",
+        "trigger_type": "push_to_branch",
+        "dimensions": {"repo": ["1402031134"]},
+        "repo_display_name": "Nietzsche-Ubermensch/composio-audit-suite"
+      },
+      "prompt_summary": "On push: read commits, review code for bugs/missing tests, open PR with fixes, report back."
+    }
+  ],
+  "catalog_providers_available": ["gmail","outlook","github","linear","finance","webhook"],
+  "github_trigger_types": ["pr_opened","pr_draft_opened","pr_pushed","pr_merged","comment_added","push_to_branch","label_change","checks_completed","issue_comment","pr_review_comment","pr_review_submitted","review_thread","workflow_run_completed"]
+}
