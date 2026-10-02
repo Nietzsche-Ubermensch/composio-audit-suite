@@ -1,43 +1,32 @@
 {
-  "generated_at": "2026-10-02T16:05:00+00:00",
-  "source": "live calls: COMPOSIO_GET_TOOL_SCHEMAS, COMPOSIO_MULTI_EXECUTE_TOOL, automation_list_trigger_catalog, automation_list",
-  "catalog_version_on_screen": "20260917_00",
-  "finding": "Schemas exist for every slug on the Composio toolkit page. Direct execution of meta tools is blocked. The callable surface is the Grok connector aliases plus the Automations trigger catalog.",
-  "callable_here": [
-    {"screen_name": "Manage connections", "slug": "COMPOSIO_MANAGE_CONNECTIONS", "connector": "composio___COMPOSIO_MANAGE_CONNECTIONS", "status": "called_live", "note": "15/15 active"},
-    {"screen_name": "Multi Execute Composio Tools", "slug": "COMPOSIO_MULTI_EXECUTE_TOOL", "connector": "composio___COMPOSIO_MULTI_EXECUTE_TOOL", "status": "called_live", "note": "rejects COMPOSIO_* meta slugs"},
-    {"screen_name": "Run bash commands", "slug": "COMPOSIO_REMOTE_BASH_TOOL", "connector": "composio___COMPOSIO_REMOTE_BASH_TOOL", "status": "connected"},
-    {"screen_name": "Execute Code remotely in work bench", "slug": "COMPOSIO_REMOTE_WORKBENCH", "connector": "composio___COMPOSIO_REMOTE_WORKBENCH", "status": "connected"},
-    {"screen_name": "Search Composio Tools", "slug": "COMPOSIO_SEARCH_TOOLS", "connector": "composio___COMPOSIO_SEARCH_TOOLS", "status": "called_live"},
-    {"screen_name": "Wait for connection", "slug": "COMPOSIO_WAIT_FOR_CONNECTIONS", "connector": "composio___COMPOSIO_WAIT_FOR_CONNECTIONS", "status": "connected", "note": "listed twice on the page, one tool"},
-    {"screen_name": "Get Tool Schemas", "slug": "COMPOSIO_GET_TOOL_SCHEMAS", "connector": "composio___COMPOSIO_GET_TOOL_SCHEMAS", "status": "called_live", "note": "returned schemas for the whole page"}
-  ],
-  "schema_only_execution_blocked": [
-    "COMPOSIO_CHECK_ACTIVE_CONNECTION",
-    "COMPOSIO_CHECK_ACTIVE_CONNECTIONS",
-    "COMPOSIO_CREATE_PLAN",
-    "COMPOSIO_ENABLE_TRIGGER",
-    "COMPOSIO_EXECUTE_TOOL",
-    "COMPOSIO_GET_DEPENDENCY_GRAPH",
-    "COMPOSIO_GET_REQUIRED_PARAMETERS",
-    "COMPOSIO_GET_RESPONSE_SCHEMA",
-    "COMPOSIO_INITIATE_CONNECTION",
-    "COMPOSIO_LIST_TOOLKITS",
-    "COMPOSIO_LIST_TRIGGERS"
-  ],
-  "multi_execute_error": "Cannot execute meta tool directly. Please run the actual app tools instead.",
-  "armed_automations": [],
-  "trigger_catalog_live": {
-    "gmail": ["new_email"],
-    "outlook": ["new_email"],
-    "github": ["pr_opened", "pr_draft_opened", "pr_pushed", "pr_merged", "comment_added", "push_to_branch", "label_change", "checks_completed", "issue_comment", "pr_review_comment", "pr_review_submitted", "review_thread", "workflow_run_completed"],
-    "linear": ["issue_created", "issue_status_changed", "issue_assigned"],
-    "finance": ["new_transaction", "subscription_created", "subscription_canceled"],
-    "webhook": ["webhook_received"]
+  "checked_at": "2026-10-02T16:30:00Z",
+  "composio_version": "20260917_00",
+  "meta_tools_total": 19,
+  "schemas_retrieved": 19,
+  "schemas_retrieved_via": "composio___COMPOSIO_GET_TOOL_SCHEMAS",
+  "execution_status": {
+    "directly_executable_from_this_connector": false,
+    "error": "Cannot execute meta tool directly",
+    "note": "Meta-tool slugs (LIST_TRIGGERS, LIST_TOOLKITS, CHECK_ACTIVE_CONNECTIONS, GET_DEPENDENCY_GRAPH, CREATE_PLAN, ENABLE_TRIGGER, EXECUTE_TOOL, GET_REQUIRED_PARAMETERS, GET_RESPONSE_SCHEMA, INITIATE_CONNECTION, CHECK_ACTIVE_CONNECTION) are catalog entries. This connector refuses to run them via MULTI_EXECUTE. Equivalent jobs are done by the Automations system and COMPOSIO_MANAGE_CONNECTIONS."
   },
-  "accounts": {
-    "gmail": "gmail_teer-doney",
-    "github": "github_ronde-grin",
-    "outlook": "outlook_reside-vanist"
+  "tools": {
+    "COMPOSIO_CHECK_ACTIVE_CONNECTION": {"deprecated": true, "replaced_by": "COMPOSIO_MANAGE_CONNECTIONS"},
+    "COMPOSIO_CHECK_ACTIVE_CONNECTIONS": {"replaced_by": "COMPOSIO_MANAGE_CONNECTIONS"},
+    "COMPOSIO_CREATE_PLAN": {"equivalent": "Search tools returns planning; Automations system executes plans"},
+    "COMPOSIO_ENABLE_TRIGGER": {"equivalent": "automation_create with trigger"},
+    "COMPOSIO_EXECUTE_TOOL": {"equivalent": "COMPOSIO_MULTI_EXECUTE_TOOL"},
+    "COMPOSIO_GET_DEPENDENCY_GRAPH": {"status": "schema_only, not_directly_executable"},
+    "COMPOSIO_GET_REQUIRED_PARAMETERS": {"equivalent": "COMPOSIO_GET_TOOL_SCHEMAS"},
+    "COMPOSIO_GET_RESPONSE_SCHEMA": {"equivalent": "COMPOSIO_GET_TOOL_SCHEMAS with include=[input_schema,output_schema]"},
+    "COMPOSIO_INITIATE_CONNECTION": {"equivalent": "COMPOSIO_MANAGE_CONNECTIONS action=add"},
+    "COMPOSIO_LIST_TOOLKITS": {"equivalent": "COMPOSIO_SEARCH_TOOLS"},
+    "COMPOSIO_LIST_TRIGGERS": {"equivalent": "automation_list_trigger_catalog"},
+    "COMPOSIO_MANAGE_CONNECTIONS": {"status": "live", "actions": ["add","rename","list","remove"]},
+    "COMPOSIO_MULTI_EXECUTE_TOOL": {"status": "live"},
+    "COMPOSIO_REMOTE_BASH_TOOL": {"status": "live"},
+    "COMPOSIO_REMOTE_WORKBENCH": {"status": "live"},
+    "COMPOSIO_SEARCH_TOOLS": {"status": "live"},
+    "COMPOSIO_GET_TOOL_SCHEMAS": {"status": "live"},
+    "COMPOSIO_WAIT_FOR_CONNECTION": {"status": "live"}
   }
 }
