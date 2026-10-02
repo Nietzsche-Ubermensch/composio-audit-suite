@@ -97,3 +97,87 @@ def test_automation_errors_reject_non_dict_dimensions():
         }
     )
     assert any("dimensions.repo" in error for error in errors)
+
+
+def test_inventory_errors_reject_bool_unique_slugs():
+    errors = inventory_errors(
+        {
+            "meta_tools_total": 1,
+            "schemas_retrieved": 1,
+            "unique_slugs": True,
+            "tools": {"COMPOSIO_SEARCH_TOOLS": {"status": "live"}},
+        }
+    )
+    assert any("unique_slugs must be an int" in error for error in errors)
+
+
+def test_automation_errors_reject_bool_count():
+    errors = automation_errors(
+        {
+            "count": True,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("count True" in error for error in errors)
+
+
+def test_automation_errors_reject_unhashable_task_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": {"id": "t"},
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["nietzsche-ubermensch/composio-audit-suite"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("taskId must be a non-empty string" in error for error in errors)
+
+
+def test_automation_errors_reject_blank_repo_name():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": "t",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": [""]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("dimensions.repo" in error for error in errors)

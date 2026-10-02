@@ -34,6 +34,21 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _repo_names(dimensions: Any) -> list[str] | None:
+    """Return non-empty repo name strings, or None if dimensions.repo is unusable."""
+    if not isinstance(dimensions, dict):
+        return None
+    repos = dimensions.get("repo")
+    if not isinstance(repos, list) or not repos:
+        return None
+    names: list[str] = []
+    for repo in repos:
+        if not isinstance(repo, str) or not repo.strip():
+            return None
+        names.append(repo)
+    return names
+
+
 def inventory_errors(payload: dict[str, Any]) -> list[str]:
     """Return consistency errors for a meta-tool inventory document."""
     errors: list[str] = []
@@ -73,7 +88,7 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
                 "screen_rows must be an int greater than the unique slug count "
                 "when duplicate_screen_entry is set"
             )
-        if not isinstance(duplicate, str) or not duplicate:
+        if not isinstance(duplicate, str) or not duplicate.strip():
             errors.append("duplicate_screen_entry must be a non-empty slug")
         elif duplicate not in tools:
             errors.append(f"duplicate_screen_entry {duplicate} is not in tools")
@@ -81,6 +96,9 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
         errors.append("screen_rows and duplicate_screen_entry must be set together")
 
     for slug, entry in tools.items():
+        if not isinstance(slug, str) or not slug.strip():
+            errors.append("tools keys must be non-empty slug strings")
+            continue
         if not isinstance(entry, dict):
             errors.append(f"{slug} entry must be an object")
             continue
@@ -95,9 +113,10 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
     automations = payload.get("automations")
     if not isinstance(automations, list):
         return ["automations must be a list"]
-    if payload.get("count") != len(automations):
+    count = payload.get("count")
+    if not _count(count) or count != len(automations):
         errors.append(
-            f"count {payload.get('count')} != automations length {len(automations)}"
+            f"count {count} != automations length {len(automations)}"
         )
     providers = payload.get("catalog_providers_available")
     if not isinstance(providers, list) or "github" not in providers:
@@ -116,9 +135,12 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             errors.append(f"automations[{index}] missing {missing}")
             continue
         task_id = item["taskId"]
-        if task_id in seen:
+        if not isinstance(task_id, str) or not task_id.strip():
+            errors.append(f"automations[{index}].taskId must be a non-empty string")
+        elif task_id in seen:
             errors.append(f"duplicate taskId {task_id}")
-        seen.add(task_id)
+        else:
+            seen.add(task_id)
         trigger = item["trigger"]
         if not isinstance(trigger, dict):
             errors.append(f"automations[{index}].trigger must be an object")
@@ -127,8 +149,6 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         if missing_trigger:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
-        dimensions = trigger.get("dimensions")
-        repos = dimensions.get("repo") if isinstance(dimensions, dict) else None
-        if not isinstance(repos, list) or not repos:
+        if _repo_names(trigger.get("dimensions")) is None:
             errors.append(f"automations[{index}] trigger has no dimensions.repo")
     return errors
