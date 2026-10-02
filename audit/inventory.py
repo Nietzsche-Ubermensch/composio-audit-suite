@@ -137,10 +137,20 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         task_id = item["taskId"]
         if not isinstance(task_id, str) or not task_id.strip():
             errors.append(f"automations[{index}].taskId must be a non-empty string")
-        elif task_id in seen:
-            errors.append(f"duplicate taskId {task_id}")
         else:
-            seen.add(task_id)
+            normalized_id = task_id.strip()
+            if normalized_id in seen:
+                errors.append(f"duplicate taskId {normalized_id}")
+            else:
+                seen.add(normalized_id)
+        name = item["name"]
+        if not isinstance(name, str) or not name.strip():
+            errors.append(f"automations[{index}].name must be a non-empty string")
+        if not isinstance(item["isActive"], bool):
+            errors.append(f"automations[{index}].isActive must be a bool")
+        summary = item["prompt_summary"]
+        if not isinstance(summary, str) or not summary.strip():
+            errors.append(f"automations[{index}].prompt_summary must be a non-empty string")
         trigger = item["trigger"]
         if not isinstance(trigger, dict):
             errors.append(f"automations[{index}].trigger must be an object")
