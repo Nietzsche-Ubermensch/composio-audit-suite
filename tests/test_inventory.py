@@ -239,3 +239,28 @@ def test_automation_errors_treat_padded_task_ids_as_duplicates():
         }
     )
     assert any("duplicate taskId t" in error for error in errors)
+
+
+def test_automation_errors_reject_unique_padded_task_id():
+    errors = automation_errors(
+        {
+            "count": 1,
+            "catalog_providers_available": ["github"],
+            "github_trigger_types": ["push_to_branch"],
+            "automations": [
+                {
+                    "taskId": " t ",
+                    "name": "n",
+                    "isActive": True,
+                    "prompt_summary": "p",
+                    "trigger": {
+                        "provider": "github",
+                        "trigger_type": "push_to_branch",
+                        "dimensions": {"repo": ["1402031134"]},
+                    },
+                }
+            ],
+        }
+    )
+    assert any("must not have surrounding whitespace" in error for error in errors)
+    assert not any("duplicate taskId" in error for error in errors)
