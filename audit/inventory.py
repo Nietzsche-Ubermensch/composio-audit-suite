@@ -90,8 +90,10 @@ def inventory_errors(payload: dict[str, Any]) -> list[str]:
             )
         if not isinstance(duplicate, str) or not duplicate.strip():
             errors.append("duplicate_screen_entry must be a non-empty slug")
-        elif duplicate not in tools:
-            errors.append(f"duplicate_screen_entry {duplicate} is not in tools")
+        else:
+            slug = duplicate.strip()
+            if slug not in tools:
+                errors.append(f"duplicate_screen_entry {slug} is not in tools")
     elif has_rows or has_duplicate:
         errors.append("screen_rows and duplicate_screen_entry must be set together")
 
@@ -137,10 +139,12 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
         task_id = item["taskId"]
         if not isinstance(task_id, str) or not task_id.strip():
             errors.append(f"automations[{index}].taskId must be a non-empty string")
-        elif task_id in seen:
-            errors.append(f"duplicate taskId {task_id}")
         else:
-            seen.add(task_id)
+            task_id = task_id.strip()
+            if task_id in seen:
+                errors.append(f"duplicate taskId {task_id}")
+            else:
+                seen.add(task_id)
         name = item["name"]
         if not isinstance(name, str) or not name.strip():
             errors.append(f"automations[{index}].name must be a non-empty string")
@@ -160,5 +164,7 @@ def automation_errors(payload: dict[str, Any]) -> list[str]:
             errors.append(f"automations[{index}].trigger missing {missing_trigger}")
             continue
         if _repo_names(trigger.get("dimensions")) is None:
-            errors.append(f"automations[{index}] trigger has no dimensions.repo")
+            errors.append(
+                f"automations[{index}] trigger dimensions.repo must be non-empty strings"
+            )
     return errors
